@@ -174,7 +174,6 @@ def evaluate_cv5_lgb(train_df, test_df, cols, test=False):
         if test:
             y_test += xgb.predict(test_df.loc[:, cols])
         oof_train[val_index] = y_pred
-
         if i==0:
             plot_fea_importance(xgb,X_train)
     print(train_df['label'].values)
