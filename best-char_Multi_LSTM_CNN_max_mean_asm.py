@@ -45,8 +45,8 @@ def embed_dict(file):
 
 # 读入train和test
 def read_data(typein, data):
-    data = pd.merge(data, que[['qid', 'cid']], left_on='qid1', right_on='qid', how='left')
-    data = pd.merge(data, que[['qid', 'cid']], left_on='qid2', right_on='qid', how='left')
+    data = pd.merge(data, que[['qid', 'wid']], left_on='qid1', right_on='qid', how='left')
+    data = pd.merge(data, que[['qid', 'wid']], left_on='qid2', right_on='qid', how='left')
     data.drop(['qid_x', 'qid_y'], axis=1, inplace=True)
     data.to_csv('demo.csv', index=None)
 
@@ -80,11 +80,11 @@ def embedding_matrix(w_inx, w_dict, MAX_NB_WORDS, EMBEDDING_DIM):
 MAX_NB_WORDS = 10000
 EMBEDDING_DIM = 300
 #######################
-word_dict = embed_dict('input/char_embedding.txt')
+word_dict = embed_dict('input/word_embedding.txt')
 test = read_data('test',test)
 train = read_data('train',train)
 tokenizer = Tokenizer(num_words=MAX_NB_WORDS)
-tokenizer.fit_on_texts(que['cid'])
+tokenizer.fit_on_texts(que['wid'])
 
 word_index = tokenizer.word_index
 q1_data_tr,q2_data_tr = text2seq(train['word1'],train['word2'],tokenizer)
