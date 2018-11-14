@@ -175,12 +175,11 @@ for i,(tr,va) in enumerate(StratifiedKFold(n_splits=10).split(q_concat,train['la
 
 
 avg = np.mean(re,axis=0)
-
-def make_submission(predict_prob):
-    with open('submission_char.csv', 'w') as file:
-        file.write(str('y_pre') + '\n')
-        for line in predict_prob:
-            file.write(str(line) + '\n')
-    file.close()
-
-make_submission(avg)
+preds=[]
+for p in avg:
+    if p>=0.5:
+        preds.append(1)
+    else:
+        preds.append(0)
+test['label']=preds
+test[['qid1','qid2','label']].to_csv('result/01_lgb_cv5.csv',columns=['qid1','qid2','label'], index=None)
