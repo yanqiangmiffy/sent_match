@@ -2,7 +2,7 @@
 # -*- coding:utf-8 _*-  
 """ 
 @Author:yanqiang 
-@File: 01_xgb_fea.py
+@File: xgb_fea.py
 @Time: 2018/11/14 14:04
 @Software: PyCharm 
 @Description:
@@ -191,5 +191,4 @@ if __name__ == '__main__':
     test['label']=y_test
     test['label']=test['label'].apply(lambda x:1 if x>0.5 else 0)
     # test.rename(columns={'qid1':'question_id_1','qid2':'question_id_2'},inplace=True)
-    print(test)
     test[['qid1','qid2','label']].to_csv('result/01_lgb_cv5.csv',columns=['qid1','qid2','label'], index=None)
