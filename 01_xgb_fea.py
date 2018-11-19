@@ -2,7 +2,7 @@
 # -*- coding:utf-8 _*-  
 """ 
 @Author:yanqiang 
-@File: xgb_fea.py
+@File: 01_xgb_fea.py
 @Time: 2018/11/14 14:04
 @Software: PyCharm 
 @Description:
@@ -16,6 +16,12 @@ import seaborn as sns
 from tqdm import tqdm
 from fuzzywuzzy import fuzz # 字符串模糊匹配工具 http://hao.jobbole.com/fuzzywuzzy/
 from gensim.models.doc2vec import Doc2Vec,LabeledSentence
+import difflib # python官方库difflib的类SequenceMatcher  比较文本的距离
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from nltk.tokenize import word_tokenize
+from nltk import ngrams
+from nltk.corpus import stopwords
+from simhash import Simhash
 
 from sklearn.model_selection import KFold,RepeatedStratifiedKFold
 from sklearn.metrics import roc_auc_score,accuracy_score
@@ -89,7 +95,7 @@ def Euclidean(vec1, vec2):
 
 def calculate_sim():
     """
-    计算相似度
+    计算相似度:doc2vec cos eu
     :return:
     """
     print("get doc sim...")
@@ -103,23 +109,183 @@ def calculate_sim():
         eu_dis.append(Euclidean(model_dm.docvecs[qid1],model_dm.docvecs[qid2]))
     return doc_sims,cos_sim,eu_dis
 
-
 def get_fuzzy_ratios():
     print("get fuzz ratios...")
     ratios=[] # 简单比
+    qratios=[]
+    wratios=[]
+    partial_ratios=[]
+    partial_token_set_ratios=[]
+    partial_token_sort_ratios=[]
+    token_set_ratios=[]
+    token_sort_ratios=[]
     for wid1,wid2 in tqdm(zip(df_all['wid1'],df_all['wid2'])):
         ratios.append(fuzz.ratio(wid1,wid2))
-    return ratios
+        qratios.append(fuzz.QRatio(wid1,wid2))
+        wratios.append(fuzz.WRatio(wid1,wid2))
+        partial_ratios.append(fuzz.partial_ratio(wid1,wid2))
+        partial_token_set_ratios.append(fuzz.partial_token_set_ratio(wid1,wid2))
+        partial_token_sort_ratios.append(fuzz.partial_token_sort_ratio(wid1,wid2))
+        token_set_ratios.append(fuzz.token_set_ratio(wid1,wid2))
+        token_sort_ratios.append(fuzz.token_sort_ratio(wid1,wid2))
+    return ratios,qratios,wratios,partial_ratios,partial_token_set_ratios,\
+           partial_token_sort_ratios,token_set_ratios,token_sort_ratios
+
+
+def get_diffs():
+    """获取diff 距离"""
+    print("get diffs ratios...")
+    seq=difflib.SequenceMatcher()
+    diffs=[]
+    for wid1,wid2 in tqdm(zip(df_all['wid1'],df_all['wid2'])):
+        seq.set_seqs(wid1.lower(),wid2.lower())
+        diffs.append(seq.ratio())
+    return diffs
+
+
+def get_len(df_all):
+    """
+    文本长度
+    :return:
+    """
+    print("get_len...")
+
+    # 长度特征
+    df_all['word_len1'] = df_all.wid1.map(lambda x: len(str(x)))  # word长度
+    df_all['word_len2'] = df_all.wid2.map(lambda x: len(str(x)))
+
+    df_all['char_len1'] = df_all.cid1.map(lambda x: len(str(x)))  # 字符长度
+    df_all['char_len2'] = df_all.cid2.map(lambda x: len(str(x)))
+
+    # 差值特征
+    df_all['word_len_diff_ratio'] = df_all.apply(
+        lambda row: abs(row.word_len1 - row.word_len2) / (row.word_len1 + row.word_len2), axis=1)
+    df_all['char_len_diff_ratio'] = df_all.apply(
+        lambda row: abs(row.char_len1 - row.char_len2) / (row.char_len1 + row.char_len2), axis=1)
+    return df_all
+
+def gen_tfidf(df_all):
+    """
+    tfidf 特征
+    :return:
+    """
+    print("gen tfidf...")
+
+    tfidf = TfidfVectorizer(stop_words='english', ngram_range=(1, 1))
+
+    questions_txt = pd.Series(
+        df_all['wid1'].tolist() +
+        df_all['wid2'].tolist()
+    ).astype(str)
+
+    tfidf.fit_transform(questions_txt)
+
+    tfidf_sum1 = []
+    tfidf_sum2 = []
+    tfidf_mean1 = []
+    tfidf_mean2 = []
+    tfidf_len1 = []
+    tfidf_len2 = []
+
+    for index, row in df_all.iterrows():
+        tfidf_q1 = tfidf.transform([str(row['wid1'])]).data
+        tfidf_q2 = tfidf.transform([str(row['wid2'])]).data
+
+        tfidf_sum1.append(np.sum(tfidf_q1))
+        tfidf_sum2.append(np.sum(tfidf_q2))
+        tfidf_mean1.append(np.mean(tfidf_q1))
+        tfidf_mean2.append(np.mean(tfidf_q2))
+        tfidf_len1.append(len(tfidf_q1))
+        tfidf_len2.append(len(tfidf_q2))
+
+    df_all['tfidf_sum1'] = tfidf_sum1
+    df_all['tfidf_sum2'] = tfidf_sum2
+    df_all['tfidf_mean1'] = tfidf_mean1
+    df_all['tfidf_mean2'] = tfidf_mean2
+    df_all['tfidf_len1'] = tfidf_len1
+    df_all['tfidf_len2'] = tfidf_len2
+
+    return df_all
+
+# ------>simhash
+def tokenize(sequence):
+    words = word_tokenize(sequence)
+    filtered_words = [word for word in words if word not in stopwords.words('english')]
+    return filtered_words
+
+def clean_sequence(sequence):
+    tokens = tokenize(sequence)
+    return ' '.join(tokens)
+
+def get_word_ngrams(sequence, n=3):
+    tokens = tokenize(sequence)
+    return [' '.join(ngram) for ngram in ngrams(tokens, n)]
+
+def get_character_ngrams(sequence, n=3):
+    sequence = clean_sequence(sequence)
+    return [sequence[i:i+n] for i in range(len(sequence)-n+1)]
+
+
+def caluclate_simhash_distance(sequence1, sequence2):
+    return Simhash(sequence1).distance(Simhash(sequence2))
+
+def get_word_distance(questions):
+    # 词距离
+    q1, q2 = questions.split('_split_tag_')
+    q1, q2 = tokenize(q1), tokenize(q2)
+    return caluclate_simhash_distance(q1, q2)
+
+def get_word_2gram_distance(questions):
+    # word_ngrams距离
+    q1, q2 = questions.split('_split_tag_')
+    q1, q2 = get_word_ngrams(q1, 2), get_word_ngrams(q2, 2)
+    return caluclate_simhash_distance(q1, q2)
+
+def get_char_2gram_distance(questions):
+    # char_2gram距离
+    q1, q2 = questions.split('_split_tag_')
+    q1, q2 = get_character_ngrams(q1, 2), get_character_ngrams(q2, 2)
+    return caluclate_simhash_distance(q1, q2)
+
+def get_word_3gram_distance(questions):
+    # word_3gram距离
+    q1, q2 = questions.split('_split_tag_')
+    q1, q2 = get_word_ngrams(q1, 3), get_word_ngrams(q2, 3)
+    return caluclate_simhash_distance(q1, q2)
+
+def get_char_3gram_distance(questions):
+    # char_3gram距离
+    q1, q2 = questions.split('_split_tag_')
+    q1, q2 = get_character_ngrams(q1, 3), get_character_ngrams(q2, 3)
+    return caluclate_simhash_distance(q1, q2)
+
+# ------>simhash
+
+
 
 
 doc_sims,cos_sim,eu_dis=calculate_sim()
-ratios=get_fuzzy_ratios()
+ratios,qratios,wratios,partial_ratios,partial_token_set_ratios,\
+           partial_token_sort_ratios,token_set_ratios,token_sort_ratios=get_fuzzy_ratios()
+diffs=get_diffs()
 
 df_all['doc_sims']=doc_sims
 df_all['cos_sim']=cos_sim
 df_all['eu_dis']=eu_dis
-df_all['ratios']=ratios
+df_all['ratios'],df_all['qratios'],df_all['wratios'],df_all['partial_ratios']=ratios,qratios,wratios,partial_ratios
+df_all['pt_set_r'],df_all['pt_sort_r'],df_all['t_set_r'],df_all['t_sort_r']=partial_token_set_ratios,partial_token_sort_ratios,\
+                                                                            token_set_ratios,token_sort_ratios
+df_all['diffs']=diffs
 
+df_all=get_len(df_all) # 获取文本长度特征
+df_all=gen_tfidf(df_all)
+
+df_all['words'] = df_all['wid1'] + '_split_tag_' + df_all['wid2']
+df_all['simhash_tokenize_distance'] = df_all['words'].apply(get_word_distance)
+df_all['simhash_word_2gram_distance'] = df_all['words'].apply(get_word_2gram_distance)
+df_all['simhash_char_2gram_distance'] = df_all['words'].apply(get_char_2gram_distance)
+df_all['simhash_word_3gram_distance'] = df_all['words'].apply(get_word_3gram_distance)
+df_all['simhash_char_3gram_distance'] =df_all['words'].apply(get_char_3gram_distance)
 
 def add_poly_features(data,column_names):
     # 组合特征
@@ -155,7 +321,6 @@ def plot_fea_importance(classifier,X_train):
 
 def evaluate_cv5_lgb(train_df, test_df, cols, test=False):
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
-
     y_test = 0
     oof_train = np.zeros((train_df.shape[0],))
     for i, (train_index, val_index) in enumerate(kf.split(train_df[cols])):
@@ -185,9 +350,9 @@ def evaluate_cv5_lgb(train_df, test_df, cols, test=False):
 
 if __name__ == '__main__':
     train,test=create_feature(df_all)
-    cols = [col for col in train.columns if col not in ['qid1','qid2','label','wid1','cid1','wid2','cid2']]
-    y_test=evaluate_cv5_lgb(train,test,cols,True)
-    test['label']=y_test
+    cols = [col for col in df_all.columns if col not in ['qid1','qid2','label','wid1','cid1','wid2','cid2','words']]
+    df_all[cols+['qid1','qid2','label']].to_csv('feature.csv',index=None)
+    test['label']=evaluate_cv5_lgb(train,test,cols,True)
     test['label']=test['label'].apply(lambda x:1 if x>0.5 else 0)
     # test.rename(columns={'qid1':'question_id_1','qid2':'question_id_2'},inplace=True)
     test[['qid1','qid2','label']].to_csv('result/01_lgb_cv5.csv',columns=['qid1','qid2','label'], index=None)
