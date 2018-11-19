@@ -2,7 +2,7 @@
 # -*- coding:utf-8 _*-  
 """ 
 @Author:yanqiang 
-@File: Char_Multi_LSTM_CNN.py
+@File: 02_Char_Multi_LSTM_CNN.py
 @Time: 2018/11/14 17:11
 @Software: PyCharm 
 @Description:
@@ -77,7 +77,7 @@ def embedding_matrix(w_inx, w_dict, MAX_NB_WORDS, EMBEDDING_DIM):
     return word_embedding_matrix
 
 #全局变量
-MAX_NB_WORDS = 10000
+MAX_NB_WORDS = 10000 # 2300
 EMBEDDING_DIM = 300
 #######################
 word_dict = embed_dict('input/char_embedding.txt')
@@ -181,4 +181,4 @@ for p in avg:
     else:
         preds.append(0)
 test['label']=preds
-test[['qid1','qid2','label']].to_csv('result/01_lgb_cv5.csv',columns=['qid1','qid2','label'], index=None)
+test[['qid1','qid2','label']].to_csv('result/02_char_multi_lstm_cnn.csv',columns=['qid1','qid2','label'], index=None)

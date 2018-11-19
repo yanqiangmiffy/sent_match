@@ -2,7 +2,7 @@
 # -*- coding:utf-8 _*-  
 """ 
 @Author:yanqiang 
-@File: Word_Multi_LSTM_CNN.py.py 
+@File: 03_Word_Multi_LSTM_CNN.py.py
 @Time: 2018/11/19 11:09
 @Software: PyCharm 
 @Description:
@@ -166,4 +166,4 @@ for p in avg:
     else:
         preds.append(0)
 test['label']=preds
-test[['qid1','qid2','label']].to_csv('result/02_word_cnn_lstm.csv',columns=['qid1','qid2','label'], index=None)
+test[['qid1','qid2','label']].to_csv('result/03_word_cnn_lstm.csv',columns=['qid1','qid2','label'], index=None)
