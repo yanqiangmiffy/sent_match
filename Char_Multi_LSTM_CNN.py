@@ -93,7 +93,6 @@ q_concat = np.stack([q1_data_tr,q2_data_tr],axis=1)
 word_embedding_matrix = embedding_matrix(word_index,word_dict,MAX_NB_WORDS, EMBEDDING_DIM)
 
 
-
 def lstm_layer(q, lstm1, lstm2):
     q = lstm1(q)
     q = Dropout(0.3)(q)
