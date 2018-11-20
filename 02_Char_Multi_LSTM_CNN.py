@@ -5,7 +5,7 @@
 @File: 02_Char_Multi_LSTM_CNN.py
 @Time: 2018/11/14 17:11
 @Software: PyCharm 
-@Description:
+@Description: https://github.com/chandlervan/2018-paipaidai-competition
 """
 
 import warnings

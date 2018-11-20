@@ -5,7 +5,7 @@
 @File: 01_xgb_fea.py
 @Time: 2018/11/14 14:04
 @Software: PyCharm 
-@Description:
+@Description:https://github.com/joleo/paipai_magic_com
 """
 import pandas as pd
 import numpy as np

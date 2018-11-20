@@ -13,6 +13,16 @@ import matplotlib.pyplot as plt
 
 question = pd.read_csv('input/question_id.csv')
 train = pd.read_csv('input/train.csv')
+test = pd.read_csv('input/test.csv')
+
+# train.rename(columns={'qid1':'q1','qid2':'q2'},inplace=True)
+# test.rename(columns={'qid1':'q1','qid2':'q2'},inplace=True)
+# question.rename(columns={'wid':'words','cid':'chars'},inplace=True)
+#
+# train.to_csv('train.csv',index=False)
+# test.to_csv('test.csv',index=False)
+# question.to_csv('question.csv',index=False)
+
 print(train['label'].value_counts())
 print(train['qid1'].value_counts()[:10])  # 问题有重复的
 
@@ -44,4 +54,6 @@ print(c)
 print("---")
 
 print(c[:1,:,:])
+
+
 
