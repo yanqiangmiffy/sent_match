@@ -77,7 +77,7 @@ def embedding_matrix(w_inx, w_dict, MAX_NB_WORDS, EMBEDDING_DIM):
     return word_embedding_matrix
 
 #全局变量
-MAX_NB_WORDS = 10000 # 2300
+MAX_NB_WORDS = 2300 # 2300
 EMBEDDING_DIM = 300
 #######################
 word_dict = embed_dict('input/char_embedding.txt')
