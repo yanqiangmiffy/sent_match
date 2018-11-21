@@ -48,7 +48,7 @@ def read_data(typein, data):
     data = pd.merge(data, que[['qid', 'cid']], left_on='qid1', right_on='qid', how='left')
     data = pd.merge(data, que[['qid', 'cid']], left_on='qid2', right_on='qid', how='left')
     data.drop(['qid_x', 'qid_y'], axis=1, inplace=True)
-    data.to_csv('demo.csv', index=None)
+    # data.to_csv('demo.csv', index=None)
 
     if typein == 'train':
         columns = ['qid1', 'qid2','label', 'word1', 'word2']
